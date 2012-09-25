@@ -487,14 +487,27 @@ ReplicaSetManager.prototype.restartKilledNodes = function(callback) {
 
   // Restart all the number of nodes
   for(var i = 0; i < numberOfNodes; i++) {
-    // Start the process
-    self.start(nodes[i], function(err, result) {
-      // Adjust the number of nodes we are starting
-      numberOfNodes = numberOfNodes - 1;
+    var n = parseInt(nodes[i]);
 
-      if(numberOfNodes === 0) {
-        self.ensureUp(callback);
-      }
+    // Perform cleanup of directories
+    exec("rm -rf " + self.mongods[n]["db_path"], function(err, stdout, stderr) {
+      if(err != null) return callback(err, null);
+
+      // Create directory
+      exec("mkdir -p " + self.mongods[n]["db_path"], function(err, stdout, stderr) {
+        if(err != null) return callback(err, null);
+//        self.mongods[n]["start"] = self.startCmd(n);
+
+        // Start the process
+        self.start(n, function(err, result) {
+          // Adjust the number of nodes we are starting
+          numberOfNodes = numberOfNodes - 1;
+
+          if(numberOfNodes === 0) {
+            self.ensureUp(callback);
+          }
+        });
+      });
     });
   }
 }
